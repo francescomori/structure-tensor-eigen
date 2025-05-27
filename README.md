@@ -1,33 +1,69 @@
-# Structure‐Tensor Eigen Analysis
+# Volumetric Field Analysis Tools
 
-Compute per‐voxel eigenvalues (and eigenvectors) of the 3D structure tensor from volumetric Zarr data, using Dask for out‐of‐core performance.
+This repository provides two command-line scripts for analyzing 3D volumetric data in Zarr format.
 
-## Features
+## eig_analysis.py
 
-- **Out‐of-core processing:** leverages Dask arrays and map_overlap for large volumes  
-- **Flexible I/O:** reads/writes chunked Zarr datasets  
-- **Eigenpairs:** optionally compute both eigenvalues and eigenvectors  
+Compute per-voxel eigenvalues (and optional eigenvectors) of a 3D scalar field using the structure tensor.
 
-## Usage
+### Features
+
+* **Out-of-core processing:** leverages Dask `map_overlap` for volumes larger than memory
+* **Flexible I/O:** reads and writes chunked Zarr datasets
+* **Gaussian pre-smoothing:** optional smoothing of the input volume
+* **Eigenpairs:** compute eigenvalues only, or both eigenvalues and eigenvectors
+* **Voxel selection:** restrict to nonzero or all voxels
+
+### Usage
 
 ```bash
-# eigenvalues only
-eig-analysis.py \
-  --input data.zarr \
+# Eigenvalues only, smoothing σ=2.0
+python eig_analysis.py \
+  --input data_scalar.zarr \
   --output ev.zarr \
   --sigma-smooth 2.0 \
   --nonzero-only
 
-# eigenvalues + eigenvectors
-eig-analysis.py \
-  --input data.zarr \
+# Eigenvalues + eigenvectors for all voxels
+python eig_analysis.py \
+  --input data_scalar.zarr \
   --output ev.zarr \
   --eigenvectors-output evectors.zarr \
   --sigma-smooth 2.0 \
   --all-voxels
+
+# For full options:
+python eig_analysis.py --help
 ```
 
-For full options, run:
+## local\_fields.py
+
+Compute density-weighted local vector fields by Gaussian smoothing of a density-modulated vector field.
+
+### Features
+
+* **Density weighting:** multiplies the vector field by the density before smoothing
+* **Gaussian smoothing:** uses SciPy's `gaussian_filter` via Dask `map_overlap`
+* **Chunk-safe:** configurable overlap depth (defaults to 3σ)
+
+### Usage
+
 ```bash
-eig-analysis --help
+# Basic density-weighted smoothing
+python local_fields.py \
+  --input-vector vector_field.zarr \
+  --input-density density_field.zarr \
+  --output smoothed_field.zarr \
+  --sigma-smooth 2.5
+
+# With custom overlap depth
+python local_fields.py \
+  --input-vector vector_field.zarr \
+  --input-density density_field.zarr \
+  --output smoothed_field.zarr \
+  --sigma-smooth 1.5 \
+  --overlap-depth 5
+
+# For full options:
+python local_fields.py --help
 ```
